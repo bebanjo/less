@@ -13,12 +13,14 @@ module Less
       include Entity
 
       attr_accessor :rules, :selector, :file,
-                    :set,   :imported, :name
+                    :set,   :imported, :name,
+                    :required_rules
 
       def initialize name = "", selector = ''
         @name = name
         @set, @imported = [], []
         @rules = [] # Holds all the nodes under this element's hierarchy
+        @required_rules = []
         @selector = Selector[selector.strip].new  # descendant | child | adjacent
       end
 
@@ -160,7 +162,7 @@ module Less
             *@set.map(&:name)].uniq * ', '} {#{content}}\n" : ""
         end
 
-        ruleset + elements.reject {|e| e.is_a?(Mixin::Def) }.map do |i|
+        ruleset + (elements.reject {|e| e.is_a?(Mixin::Def) } - required_rules).map do |i|
           i.to_css(path, env)
         end.reject(&:empty?).join
 
@@ -204,6 +206,11 @@ module Less
           put[ mixins ],
           elements.map {|i| i.inspect( depth + 1 ) } * "\n"
         ].reject(&:empty?).join("\n") + "\n" + indent[ depth ]
+      end
+      
+      def require_rules(rules)
+        self.rules += rules
+        self.required_rules += rules
       end
     end
 
